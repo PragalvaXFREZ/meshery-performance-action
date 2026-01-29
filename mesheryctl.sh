@@ -57,14 +57,19 @@ main() {
 		
 	else
 		echo "Executing from given test config file..."
-		#echo $service_mesh
-		shortName=$(echo ${adapters[$service_mesh]} | cut -d ':' -f1)
-		shortName=${shortName#meshery-} #remove the prefix "meshery-"
-		docker network connect bridge meshery_meshery-"$shortName"_1
-		docker network connect minikube meshery_meshery-"$shortName"_1
-		
-		docker network connect bridge meshery_meshery_1
-		docker network connect minikube meshery_meshery_1
+
+		# Connect adapter containers to networks only if service_mesh is specified
+		if [[ -n "$service_mesh" ]]; then
+			shortName=$(echo ${adapters[$service_mesh]} | cut -d ':' -f1)
+			shortName=${shortName#meshery-} #remove the prefix "meshery-"
+			if [[ -n "$shortName" ]]; then
+				docker network connect bridge meshery_meshery-"$shortName"_1 2>/dev/null || true
+				docker network connect minikube meshery_meshery-"$shortName"_1 2>/dev/null || true
+			fi
+		fi
+
+		docker network connect bridge meshery_meshery_1 2>/dev/null || true
+		docker network connect minikube meshery_meshery_1 2>/dev/null || true
 		mesheryctl system config minikube -t ~/auth.json
 		
 		perf_profile_name="smp-$perf_profile_name"
